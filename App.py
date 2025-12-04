@@ -422,8 +422,8 @@ HTML_PAGE = """
         
         <form action="/preview" method="post" enctype="multipart/form-data">
             <input type="file" name="file" accept=".csv,.xlsx,.xls,.pdf" required>
-            <input type="hidden" name="file_type" value="LIVRAISON">
-            <input type="submit" value="Preview Delivery File">
+            <input type="hidden" name="file_type" value="EDI">
+            <input type="submit" value="Preview EDI File">
         </form>
 
 
