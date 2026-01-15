@@ -22,11 +22,11 @@ app = Flask(__name__)
 # Ensure you replace these with your actual database credentials
 db_url = URL.create(
     drivername="postgresql+psycopg2",
-    username="adminavo",
-    password="$#fKcdXPg4@ue8AW",
-    host="avo-adb-001.postgres.database.azure.com",
+    username="administrationSTS",
+    password="St$@0987",
+    host="avo-adb-002.postgres.database.azure.com",
     port=5432,
-    database="EDI IA"
+    database="EDI_IA"
 )
 try:
     engine = create_engine(db_url)
