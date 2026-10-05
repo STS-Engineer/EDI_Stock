@@ -1,0 +1,21 @@
+{
+  "file_type": "EDI",
+  "rows": [
+    {
+      "Site": "Germany",
+      "ClientCode": "00100",
+      "ClientMaterialNo": "000321",
+      "AVOMaterialNo": "000123",
+      "DateFrom": "2026-W41",
+      "DateUntil": null,
+      "Quantity": 0,
+      "ForecastDate": "2026-10-05",
+      "LastDeliveryDate": null,
+      "LastDeliveredQuantity": null,
+      "CumulatedQuantity": null,
+      "EDIStatus": "Forecast",
+      "ProductName": null,
+      "LastDeliveryNo": null
+    }
+  ]
+}

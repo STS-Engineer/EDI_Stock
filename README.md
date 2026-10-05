@@ -41,7 +41,7 @@ L’application se lance avec `gunicorn --bind 127.0.0.1:8000 App:app`. Les impo
 
 ## Intégration
 
-Voir [docs/API.md](docs/API.md) et [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). Les routes `/`, `/preview`, `/insert` et `/download/template/<name>.<ext>` et les colonnes métier restent présentes. Les formulaires nécessitent désormais un jeton CSRF ; `temp_file` devient un jeton opaque signé, pas un chemin. Les anciens liens d’aperçu et `/view/temp/*` ne sont plus pris en charge. Ne pas connecter une automatisation aux routes HTML.
+Voir [docs/API.md](docs/API.md), [le noyau d’intégration testé localement](integration/edi_intake/README.md) et [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md). Les routes `/`, `/preview`, `/insert` et `/download/template/<name>.<ext>` et les colonnes métier restent présentes. Les formulaires nécessitent désormais un jeton CSRF ; `temp_file` devient un jeton opaque signé, pas un chemin. Les anciens liens d’aperçu et `/view/temp/*` ne sont plus pris en charge. Ne pas connecter une automatisation aux routes HTML.
 
 La table `edi_imports` est nouvelle. La migration SQL est fournie pour revue et exécution autorisée en staging, jamais lancée automatiquement. Toutes les lignes métier et le registre sont validés dans la même transaction.
 
