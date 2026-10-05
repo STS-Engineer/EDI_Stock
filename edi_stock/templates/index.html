@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="description" content="Espace de préparation, de validation et d’import des fichiers EDI et de livraison AVOCARBON.">
+    <title>Import {{ 'EDI' if active_tab == 'EDI' else 'livraisons' }} · AVOCARBON</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='app.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Aller au contenu principal</a>
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="/?tab=EDI" aria-label="AVOCARBON, accueil de l’espace d’import">
+          <span class="brand-mark"><img class="brand-logo" src="{{ url_for('static', filename='avocarbon-logo.png') }}" alt="AVOCarbon Group" width="718" height="132"></span>
+          <span class="brand-subtitle">Opérations · Stocks</span>
+        </a>
+        <span class="header-caption">Espace d’import</span>
+      </div>
+    </header>
+
+    <main id="main-content" class="workspace" tabindex="-1">
+      <section class="page-intro" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">Gestion des données</p>
+          <h1 id="page-title">Des imports en toute clarté.</h1>
+          <p class="intro-copy">Préparez votre fichier, vérifiez les données, puis confirmez l’import.</p>
+        </div>
+        <div class="environment-status {{ 'is-configured' if configured else 'is-unconfigured' }}">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span>{{ 'Configuration renseignée' if configured else 'Configuration à compléter' }}</span>
+        </div>
+      </section>
+
+      {% if message %}
+      <section class="notice {{ 'notice-error' if error else 'notice-info' }}" role="{{ 'alert' if error else 'status' }}" aria-label="{{ 'Erreur' if error else 'Information' }}">
+        <span class="notice-icon" aria-hidden="true">{{ '!' if error else 'i' }}</span>
+        <p>{{ message }}</p>
+      </section>
+      {% endif %}
+
+      {% if not configured %}
+      <section class="notice notice-warning" aria-labelledby="configuration-title">
+        <span class="notice-icon" aria-hidden="true">!</span>
+        <div>
+          <h2 id="configuration-title">L’import interactif reste désactivé</h2>
+          <p>La préparation nécessite une session configurée. L’import sera disponible après configuration de la base et vérification du contrôle d’accès.</p>
+        </div>
+      </section>
+      {% endif %}
+
+      {% if receipt %}
+      <section class="receipt" role="status" aria-labelledby="receipt-title">
+        <div class="receipt-heading">
+          <span class="receipt-icon" aria-hidden="true">↗</span>
+          <div>
+            <p class="eyebrow">Compte rendu</p>
+            <h2 id="receipt-title">Résultat de l’import</h2>
+          </div>
+        </div>
+        <dl class="receipt-details">
+          <div><dt>Lignes importées</dt><dd>{{ receipt.rows_imported }}</dd></div>
+          <div><dt>Flux</dt><dd>{{ 'Livraisons' if receipt.file_type == 'LIVRAISON' else receipt.file_type }}</dd></div>
+          <div><dt>Statut</dt><dd>{{ 'Déjà confirmé' if receipt.status == 'already_imported' else 'Confirmé' if receipt.status == 'imported' else receipt.status }}</dd></div>
+          <div class="receipt-reference"><dt>Référence</dt><dd>{{ receipt.import_id }}</dd></div>
+        </dl>
+      </section>
+      {% endif %}
+
+      <div class="workspace-grid">
+        <aside class="workflow-panel" aria-labelledby="workflow-title">
+          <p class="eyebrow">Le bon parcours</p>
+          <h2 id="workflow-title">Un fichier, quatre étapes.</h2>
+          <ol class="workflow-list">
+            <li>
+              <span class="step-number" aria-hidden="true">01</span>
+              <div><h3>Partir du modèle</h3><p>Téléchargez le modèle du flux et conservez ses en-têtes.</p></div>
+            </li>
+            <li {% if not preview and not receipt %}aria-current="step"{% endif %}>
+              <span class="step-number" aria-hidden="true">02</span>
+              <div><h3>Ajouter votre fichier</h3><p>Sélectionnez votre fichier à vérifier.</p></div>
+            </li>
+            <li {% if preview %}aria-current="step"{% endif %}>
+              <span class="step-number" aria-hidden="true">03</span>
+              <div><h3>Vérifier l’aperçu</h3><p>Contrôlez les lignes et corrigez les erreurs signalées.</p></div>
+            </li>
+            <li {% if receipt %}aria-current="step"{% endif %}>
+              <span class="step-number" aria-hidden="true">04</span>
+              <div><h3>Confirmer l’import</h3><p>L’écriture en base nécessite votre confirmation.</p></div>
+            </li>
+          </ol>
+          <div class="workflow-tip">
+            <span class="tip-rule" aria-hidden="true"></span>
+            <h3>Avant de commencer</h3>
+            <p>Utilisez un fichier par flux. Vérifiez les références, les dates et les quantités avant de l’importer.</p>
+          </div>
+        </aside>
+
+        <div class="import-content">
+          <section class="import-card" aria-labelledby="import-title">
+            <nav class="flow-nav" aria-label="Choisir le type d’import">
+              <a href="/?tab=EDI" {% if active_tab == 'EDI' %}aria-current="page"{% endif %}>
+                <span class="flow-icon" aria-hidden="true">↔</span> EDI
+              </a>
+              <a href="/?tab=LIVRAISON" {% if active_tab == 'LIVRAISON' %}aria-current="page"{% endif %}>
+                <span class="flow-icon" aria-hidden="true">↗</span> Livraisons
+              </a>
+            </nav>
+
+            <div class="card-body">
+              <div class="section-heading">
+                <div>
+                  <p class="eyebrow">{{ 'Flux EDI' if active_tab == 'EDI' else 'Flux livraisons' }}</p>
+                  <h2 id="import-title">{{ 'Importer les données EDI' if active_tab == 'EDI' else 'Importer les livraisons' }}</h2>
+                </div>
+                <span class="format-tag">{{ 'Excel · CSV' if active_tab == 'EDI' else 'Excel · CSV · PDF' }}</span>
+              </div>
+              <p class="section-description">La vérification de votre fichier précède toute écriture en base.</p>
+
+              <div class="template-row">
+                <div>
+                  <h3>Besoin du bon format ?</h3>
+                  <p>Le modèle contient les colonnes attendues pour ce flux.</p>
+                </div>
+                <a class="button button-secondary template-link" href="{{ '/download/template/edi_template.xlsx' if active_tab == 'EDI' else '/download/template/delivery_template.xlsx' }}">
+                  <span aria-hidden="true">↓</span> Télécharger le modèle
+                  <span class="sr-only">{{ 'EDI' if active_tab == 'EDI' else 'livraisons' }} Excel</span>
+                </a>
+              </div>
+
+              <form action="/preview" method="post" enctype="multipart/form-data" class="upload-form" data-submit-guard>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                <input type="hidden" name="file_type" value="{{ active_tab }}">
+                <div class="file-zone">
+                  <span class="upload-symbol" aria-hidden="true">↑</span>
+                  <label for="import-file">{{ 'Choisir un autre fichier' if preview else 'Sélectionner votre fichier' }}</label>
+                  <p id="file-help">Excel (.xlsx, .xls), CSV{{ ' ou PDF de livraison' if active_tab == 'LIVRAISON' else '' }}. Modèle Excel recommandé.</p>
+                  <input id="import-file" name="file" type="file" accept=".xlsx,.xls,.csv{{ ',.pdf' if active_tab == 'LIVRAISON' else '' }}" aria-describedby="file-help" required>
+                </div>
+                <div class="form-footer">
+                  <p>Le fichier est vérifié avant confirmation.</p>
+                  <button class="button button-primary" type="submit" data-busy-label="Vérification en cours…">Vérifier le fichier <span aria-hidden="true">→</span></button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {% if errors %}
+          <section id="validation-errors" class="validation-card" role="alert" aria-labelledby="validation-title" tabindex="-1">
+            <div class="validation-heading">
+              <span class="notice-icon" aria-hidden="true">!</span>
+              <div>
+                <h2 id="validation-title">Corrigez votre fichier avant de poursuivre</h2>
+                <p>{{ errors|length }} erreur{{ 's' if errors|length > 1 else '' }} affichée{{ 's' if errors|length > 1 else '' }}. Corrigez les cellules concernées, puis sélectionnez à nouveau le fichier.</p>
+              </div>
+            </div>
+            <div class="table-scroll error-table" role="region" aria-label="Liste des erreurs de validation" tabindex="0">
+              <table>
+                <caption class="sr-only">Erreurs détectées dans le fichier</caption>
+                <thead><tr><th scope="col">Ligne</th><th scope="col">Colonne</th><th scope="col">Correction nécessaire</th></tr></thead>
+                <tbody>
+                  {% for item in errors %}
+                  <tr><td>{{ item.row if item.row is not none else '—' }}</td><th scope="row">{{ item.column or 'Fichier' }}</th><td>{{ item.message }}</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </section>
+          {% endif %}
+
+          {% if preview %}
+          <section id="preview" class="preview-card" aria-labelledby="preview-title">
+            <div class="preview-header">
+              <div>
+                <p class="eyebrow">Dernière vérification</p>
+                <h2 id="preview-title">Aperçu des données</h2>
+                <p id="preview-description">{{ preview.rows[:20]|length }} ligne{{ 's' if preview.rows[:20]|length > 1 else '' }} affichée{{ 's' if preview.rows[:20]|length > 1 else '' }} sur {{ preview.row_count }}, depuis le début du fichier. La confirmation porte sur l’ensemble du fichier.</p>
+              </div>
+              <span class="row-count">{{ preview.row_count }} ligne{{ 's' if preview.row_count > 1 else '' }}</span>
+            </div>
+            <div class="preview-meta"><span>Flux à importer</span><strong>{{ 'Livraisons' if preview.file_type == 'LIVRAISON' else preview.file_type }}</strong></div>
+            <div class="table-scroll preview-table" role="region" aria-label="Aperçu du fichier, défilement horizontal disponible" tabindex="0">
+              <table aria-describedby="preview-description">
+                <caption class="sr-only">Aperçu des 20 premières lignes au maximum</caption>
+                <thead>
+                  <tr><th scope="col" class="row-number"><span class="sr-only">Numéro de ligne dans l’aperçu</span><span aria-hidden="true">#</span></th>{% for column in preview.columns %}<th scope="col">{{ column }}</th>{% endfor %}</tr>
+                </thead>
+                <tbody>
+                  {% for row in preview.rows[:20] %}
+                  <tr><th scope="row" class="row-number">{{ loop.index }}</th>{% for column in preview.columns %}<td>{{ row.get(column, '') if row.get(column) is not none else '' }}</td>{% endfor %}</tr>
+                  {% else %}
+                  <tr><td colspan="{{ preview.columns|length + 1 }}" class="empty-state">Aucune ligne à afficher.</td></tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="confirmation-panel">
+              <div class="confirmation-copy">
+                <h3>Prêt à importer ?</h3>
+                <p>Confirmez uniquement après avoir vérifié le flux et les données ci-dessus.</p>
+                {% if not configured %}<p class="configuration-note" id="insert-unavailable">L’import est indisponible tant que la base n’est pas configurée.</p>{% endif %}
+                {% if errors %}<p class="configuration-note" id="insert-errors">Corrigez les erreurs avant de confirmer l’import.</p>{% endif %}
+              </div>
+              <div class="confirmation-actions">
+                <form action="/cancel" method="post" data-submit-guard>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <input type="hidden" name="temp_file" value="{{ preview.token }}">
+                  <button class="button button-secondary" type="submit" data-busy-label="Annulation en cours…">Annuler</button>
+                </form>
+                <form action="/insert" method="post" data-submit-guard>
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                  <input type="hidden" name="temp_file" value="{{ preview.token }}">
+                  <input type="hidden" name="file_type" value="{{ preview.file_type }}">
+                  <button class="button button-primary" type="submit" data-busy-label="Importation en cours…" {% if not configured or errors or not preview.row_count %}disabled{% endif %} {% if not configured %}aria-describedby="insert-unavailable"{% elif errors %}aria-describedby="insert-errors"{% endif %}>Confirmer l’import <span aria-hidden="true">→</span></button>
+                </form>
+              </div>
+            </div>
+          </section>
+          {% endif %}
+        </div>
+      </div>
+      <footer class="page-footer"><span>AVOCARBON</span><p>Import EDI &amp; livraisons</p></footer>
+    </main>
+  </body>
+</html>
