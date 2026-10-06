@@ -1,0 +1,21 @@
+{
+  "file_type": "EDI",
+  "rows": [
+    {
+      "Site": "Germany",
+      "ClientCode": "100442",
+      "ClientMaterialNo": "00190313",
+      "AVOMaterialNo": "1023093",
+      "DateFrom": "2026-W42",
+      "DateUntil": "2026-10-12",
+      "Quantity": 120,
+      "ForecastDate": "2026-W41",
+      "LastDeliveryDate": "2026-W40",
+      "LastDeliveredQuantity": 30,
+      "CumulatedQuantity": 1000,
+      "EDIStatus": "Forecast",
+      "ProductName": "Synthetic brush",
+      "LastDeliveryNo": "000007"
+    }
+  ]
+}
