@@ -5,6 +5,7 @@ addopts = "-q"
 
 [tool.ruff]
 line-length = 120
+extend-exclude = ["antenv"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]
