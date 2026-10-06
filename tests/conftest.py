@@ -61,5 +61,12 @@ def row():
 
 
 @pytest.fixture
+def edi_row():
+    return {'Site': 'Germany', 'ClientCode': '0001', 'ClientMaterialNo': '002',
+            'AVOMaterialNo': '003', 'DateFrom': '2026-W41', 'DateUntil': '2026-W42',
+            'Quantity': 0, 'ForecastDate': '2026-W40', 'EDIStatus': 'Firm'}
+
+
+@pytest.fixture
 def headers():
     return {'Authorization': 'Bearer test-only-api-token', 'Idempotency-Key': 'message-001:attachment-002'}

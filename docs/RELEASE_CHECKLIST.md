@@ -4,7 +4,7 @@
 
 1. Faire révoquer/renouveler par l’administrateur le secret PostgreSQL exposé dans le code historique. Le retirer du nouveau fichier ne le retire pas de l’historique Git et ne neutralise pas l’ancien identifiant. Aucune rotation réalisée ici.
 2. Revoir ce lot dans une branche de travail. Ne pas copier directement dans master : son workflow existant déploie automatiquement sur push. Le workflow fourni ajoute les tests avant déploiement, mais ne constitue pas une autorisation de publication.
-3. Vérifier le DDL réel : types/longueurs de colonnes, clés, unicité, index et droits. Auditer les doublons de transit par Site/AVOMaterialNo sans les supprimer automatiquement.
+3. Types, longueurs et nullabilité des colonnes métier inspectés en lecture seule le 6 octobre 2026 ; validateurs alignés. Vérifier encore les clés, l’unicité, les index et les droits. Auditer les doublons de transit par Site/AVOMaterialNo sans les supprimer automatiquement.
 4. Valider les changements métier : rejet des quantités négatives/fractionnaires/invalides ; une seule ligne de solde InTransit ; surlivraison bloquée au lieu d’une remise silencieuse à zéro ; numéro limité à 28 caractères ; validation des champs EDI. Le cas Delivered sans solde conserve le comportement historique et doit être approuvé.
 5. Confirmer la protection d’accès de l’interface via la plateforme. Ne pas activer UI_IMPORTS_ENABLED sur une URL publique sans authentification. Provisionner les secrets de façon autorisée et sécurisée.
 

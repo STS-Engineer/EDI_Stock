@@ -55,9 +55,9 @@ be used as parse-only steps: they already write business tables and return count
 The first row uses exactly the new application's column names. Comma, semicolon,
 tab and vertical-bar delimiters are supported. Unknown columns fail closed.
 
-- EDI required: Site, ClientCode, ClientMaterialNo, AVOMaterialNo, DateFrom,
+- EDI required: Site, ClientCode, ClientMaterialNo, AVOMaterialNo, DateFrom, DateUntil,
   Quantity, ForecastDate, EDIStatus.
-- EDI optional: DateUntil, LastDeliveryDate, LastDeliveredQuantity,
+- EDI optional: LastDeliveryDate, LastDeliveredQuantity,
   CumulatedQuantity, ProductName, LastDeliveryNo.
 - LIVRAISON required: Site, AVOMaterialNo, DeliveryNo, Quantity, Date, Status.
 
@@ -66,15 +66,25 @@ validator, including optional nulls, date/week checks, material suffix joining,
 delivery status normalization, delivery duplicate aggregation and integer bounds.
 It preserves textual identifiers with leading zeros. Sites are supplied by the
 CSV and validated as required text; no site allowlist is invented. EDI DateUntil
-remains optional text because that is the application's current contract.
+is required and must be a real ISO date or ISO week, like DateFrom. Production
+column limits were verified read-only on 6 October 2026 and are enforced after
+trimming and existing PL/SP material joining, without truncation. Other
+normalization follows the length check:
+
+- EDI text: 50 characters per field, except ProductName (100).
+- LIVRAISON: Site 20, AVOMaterialNo 30, Date 20, Status 30; DeliveryNo remains
+  limited to 28 to reserve `_T` within its 30-character database column.
+- Existing date/status rules and business-required fields remain stricter than
+  raw database types/nullability. ClientMaterialNo and EDIStatus stay required.
 
 The exact pure validator is vendored as `_contract_validation.py`, with this
-SHA-256: `f1fb421bea29ea02752f34136184a2271f34b51915f791af7f427b75e36a3b72`.
+SHA-256: `fc6ca3b0125eaa0b8f3ccd7d10e4cdc4e7cfa63986c5cabc47404c2e49bdf266`.
 This avoids importing the application's package initializer, Flask, SQLAlchemy
 or DB repository just to validate rows. Its source was the supplied
 `edi_stock/validation.py` workspace version. It is a snapshot, not a live import:
 reconcile it explicitly if application validation changes. The server still
-revalidates every imported row. A unit test checks the snapshot's exact digest.
+revalidates every imported row. Tests check the snapshot's exact digest and its
+byte-for-byte equality with the server validator when the checkout is present.
 
 ## Supported profile 2: legacy-valeo-germany-v1
 
@@ -133,8 +143,9 @@ current customer/product master and unknown mappings block the entire file.
 Date interpretation:
 
 - `Date` must be `YYYY-MM-DD` or `DD.MM.YYYY` and becomes an ISO week in ForecastDate.
-- `Delivery_Date` uses those formats or `CW nn/YYYY`; it becomes DateFrom while
-  its original text is retained in DateUntil.
+- `Delivery_Date` uses those formats or `CW nn/YYYY`; DateFrom becomes an ISO
+  week. DateUntil preserves the calendar date as `YYYY-MM-DD`, or the supplied
+  week as `YYYY-Wnn`. The raw dotted/CW text is no longer emitted as DateUntil.
 - `Last_Delivery_Note_Date` uses those delivery formats or is blank (null output).
 - ISO week-years are used correctly at year boundaries. The source's emitted
   ForecastDate calls `to_forecast_week(Date)` and does **not** use its earlier

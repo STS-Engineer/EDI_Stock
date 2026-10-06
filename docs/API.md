@@ -16,16 +16,21 @@ Toutes les colonnes sont obligatoires : `Site`, `AVOMaterialNo`, `DeliveryNo`, `
 - Date : AAAA-MM-JJ valide.
 - Status : Dispatched, Delivered, InTransit. Alias Sent et variantes « In transit » acceptés.
 - DeliveryNo : 28 caractères maximum, suffixe interne `_T` réservé dans la limite historique de 30.
+- Limites PostgreSQL vérifiées : Site 20 caractères, AVOMaterialNo 30, DeliveryNo 30 (entrée limitée à 28), Date 20, Status 30. Les formats de date et les statuts autorisés restent obligatoires.
 - Les codes restent du texte. Les suffixes PL/SP séparés par un espace sont joints à AVOMaterialNo.
 - Les lignes identiques sur Site/Article/Numéro/Date/Statut sont agrégées par somme avant insertion.
 
 ## EDI
 
-Obligatoires : `Site`, `ClientCode`, `ClientMaterialNo`, `AVOMaterialNo`, `DateFrom`, `Quantity`, `ForecastDate`, `EDIStatus`.
+Obligatoires : `Site`, `ClientCode`, `ClientMaterialNo`, `AVOMaterialNo`, `DateFrom`, `DateUntil`, `Quantity`, `ForecastDate`, `EDIStatus`.
 
-Facultatives : `DateUntil`, `LastDeliveryDate`, `LastDeliveredQuantity`, `CumulatedQuantity`, `ProductName`, `LastDeliveryNo`. Elles deviennent null si absentes ou vides.
+Facultatives : `LastDeliveryDate`, `LastDeliveredQuantity`, `CumulatedQuantity`, `ProductName`, `LastDeliveryNo`. Elles deviennent null si absentes ou vides.
 
-Quantités entières non négatives. DateFrom, ForecastDate, LastDeliveryDate : date ISO ou semaine ISO valide AAAA-WSS. DateUntil reste un texte pour compatibilité. EDIStatus : Forecast, Forcast (alias historique conservé), Firm, PO. Les valeurs ne sont pas toutes harmonisées avant stockage : valider les attentes des consommateurs.
+Quantités entières non négatives, maximum 2 147 483 647. DateFrom, DateUntil, ForecastDate, LastDeliveryDate : date ISO AAAA-MM-JJ ou semaine ISO valide AAAA-WSS. DateUntil absent, vide, null ou invalide bloque tout l’import. EDIStatus : Forecast, Forcast (alias historique conservé), Firm, PO. Les valeurs ne sont pas toutes harmonisées avant stockage : valider les attentes des consommateurs.
+
+Limites PostgreSQL vérifiées : Site, ClientCode, ClientMaterialNo, AVOMaterialNo, DateFrom, DateUntil, ForecastDate, LastDeliveryDate, EDIStatus et LastDeliveryNo : 50 caractères chacun ; ProductName : 100 caractères. Les limites s’appliquent après suppression des espaces de bord et jonction PL/SP d’AVOMaterialNo, en caractères Unicode, sans troncature ; les autres normalisations suivent le contrôle de longueur. Les contrôles métier plus stricts sont conservés : ClientMaterialNo et EDIStatus restent obligatoires même si la base autorise null.
+
+Ces contraintes proviennent d’une inspection en lecture seule des colonnes de production le 6 octobre 2026. Le serveur et le validateur embarqué du parseur CSV appliquent le même contrat. Cette vérification ne prouve ni la migration du registre ni les transactions concurrentes en base réelle.
 
 ## Réponses
 

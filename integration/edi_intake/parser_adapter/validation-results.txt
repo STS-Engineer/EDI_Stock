@@ -1,9 +1,12 @@
+Parser verification, 6 October 2026. Synthetic fixtures only; no network or production writes.
+
 test_all_source_plant_and_product_mappings (test_adapter.AdapterTests.test_all_source_plant_and_product_mappings) ... ok
 test_base64_helper_returns_same_envelope (test_adapter.AdapterTests.test_base64_helper_returns_same_envelope) ... ok
 test_binaries_and_unsupported_extensions_fail_closed (test_adapter.AdapterTests.test_binaries_and_unsupported_extensions_fail_closed) ... ok
 test_configuration_is_bounded (test_adapter.AdapterTests.test_configuration_is_bounded) ... ok
 test_csv_duplicate_unknown_missing_headers_fail (test_adapter.AdapterTests.test_csv_duplicate_unknown_missing_headers_fail) ... ok
 test_csv_shape_and_syntax_fail (test_adapter.AdapterTests.test_csv_shape_and_syntax_fail) ... ok
+test_database_text_boundaries_are_checked_before_envelope_is_returned (test_adapter.AdapterTests.test_database_text_boundaries_are_checked_before_envelope_is_returned) ... ok
 test_empty_attachment_and_header_only_fail (test_adapter.AdapterTests.test_empty_attachment_and_header_only_fail) ... ok
 test_explicit_encoding_only (test_adapter.AdapterTests.test_explicit_encoding_only) ... ok
 test_fresh_import_and_parse_under_io_tripwires (test_adapter.AdapterTests.test_fresh_import_and_parse_under_io_tripwires) ... ok
@@ -12,22 +15,26 @@ test_legacy_delivery_week_dot_dates_and_empty_optionals (test_adapter.AdapterTes
 test_legacy_golden_exact_envelope (test_adapter.AdapterTests.test_legacy_golden_exact_envelope) ... ok
 test_legacy_invalid_row_is_not_silently_dropped (test_adapter.AdapterTests.test_legacy_invalid_row_is_not_silently_dropped) ... ok
 test_legacy_optional_customer_number_and_unused_extra_columns (test_adapter.AdapterTests.test_legacy_optional_customer_number_and_unused_extra_columns) ... ok
+test_legacy_product_name_limit_is_not_truncated (test_adapter.AdapterTests.test_legacy_product_name_limit_is_not_truncated) ... ok
 test_limits_apply_before_delivery_grouping (test_adapter.AdapterTests.test_limits_apply_before_delivery_grouping) ... ok
 test_noncanonical_base64_is_rejected (test_adapter.AdapterTests.test_noncanonical_base64_is_rejected) ... ok
 test_normalized_all_rows_fail_together (test_adapter.AdapterTests.test_normalized_all_rows_fail_together) ... ok
 test_normalized_delimiters_and_utf8_bom (test_adapter.AdapterTests.test_normalized_delimiters_and_utf8_bom) ... ok
 test_normalized_delivery_contract_and_aggregation (test_adapter.AdapterTests.test_normalized_delivery_contract_and_aggregation) ... ok
 test_normalized_edi_keeps_leading_zeroes_and_optional_nulls (test_adapter.AdapterTests.test_normalized_edi_keeps_leading_zeroes_and_optional_nulls) ... ok
+test_normalized_edi_requires_date_until_header_and_calendar_value (test_adapter.AdapterTests.test_normalized_edi_requires_date_until_header_and_calendar_value) ... ok
 test_normalized_integer_overflow_blocks_aggregate (test_adapter.AdapterTests.test_normalized_integer_overflow_blocks_aggregate) ... ok
 test_parser_import_graph_is_stdlib_or_vendored_only (test_adapter.AdapterTests.test_parser_import_graph_is_stdlib_or_vendored_only) ... ok
 test_profile_is_explicit_and_type_is_not_inferred (test_adapter.AdapterTests.test_profile_is_explicit_and_type_is_not_inferred) ... ok
+test_published_synthetic_examples_match_expected_payloads (test_adapter.AdapterTests.test_published_synthetic_examples_match_expected_payloads) ... ok
 test_quotes_and_embedded_newline_are_not_destructively_replaced (test_adapter.AdapterTests.test_quotes_and_embedded_newline_are_not_destructively_replaced) ... ok
 test_validation_snapshot_integrity (test_adapter.AdapterTests.test_validation_snapshot_integrity) ... ok
+test_vendored_contract_matches_server_when_available (test_adapter.AdapterTests.test_vendored_contract_matches_server_when_available) ... ok
 
 ----------------------------------------------------------------------
-Ran 25 tests in 0.030s
+Ran 30 tests in 0.090s
 
 OK
 All checks passed!
-f1fb421bea29ea02752f34136184a2271f34b51915f791af7f427b75e36a3b72  parser_adapter/_contract_validation.py
-f1fb421bea29ea02752f34136184a2271f34b51915f791af7f427b75e36a3b72  edi_stock/validation.py
+fc6ca3b0125eaa0b8f3ccd7d10e4cdc4e7cfa63986c5cabc47404c2e49bdf266  integration/edi_intake/parser_adapter/_contract_validation.py
+fc6ca3b0125eaa0b8f3ccd7d10e4cdc4e7cfa63986c5cabc47404c2e49bdf266  edi_stock/validation.py

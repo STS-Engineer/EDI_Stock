@@ -113,7 +113,7 @@ def _read_csv(text, file_type, profile, delimiters, max_rows):
     return result
 
 
-def _legacy_date(value, *, allow_week=False, optional=False):
+def _legacy_date(value, *, allow_week=False, optional=False, as_week=True):
     if not value and optional:
         return None
     if value in {"0001-01-01", "01.01.0001"}:
@@ -130,6 +130,8 @@ def _legacy_date(value, *, allow_week=False, optional=False):
         parsed = date(year, month, day)
     else:
         raise ValueError("Use YYYY-MM-DD or DD.MM.YYYY; supported delivery fields also accept CW nn/YYYY.")
+    if not as_week:
+        return parsed.isoformat()
     year, week, _ = parsed.isocalendar()
     return f"{year:04d}-W{week:02d}"
 
@@ -170,7 +172,7 @@ def _germany_valeo(rows):
                 "Site": "Germany", "ClientCode": client,
                 "ClientMaterialNo": material, "AVOMaterialNo": avo,
                 "DateFrom": _legacy_date(row["Delivery_Date"], allow_week=True),
-                "DateUntil": row["Delivery_Date"],
+                "DateUntil": _legacy_date(row["Delivery_Date"], allow_week=True, as_week=False),
                 "Quantity": _legacy_integer(row["Despatch_Qty"]),
                 # Source L2940 emits to_forecast_week(date_str), not the earlier
                 # unused forecast_date variable. There is no Wednesday shift.

@@ -1,6 +1,6 @@
 # Executable integration core: parse, commit, reconcile, then move
 
-Updated 5 October 2026, 22:35 UTC. **Implemented and tested locally; not deployed or connected to live Make.**
+Updated 6 October 2026. **Implemented and tested locally; not deployed or connected to live Make.**
 
 ## What changed since the first review kit
 
@@ -55,12 +55,15 @@ Use the EDI_Stock application's development environment with requirements-dev.tx
 
 Run from the EDI_Stock repository root. The application source supplies the real Flask test client; the parser/gate use standard-library-only runtime dependencies. No database URL, real API token or live mail access is needed. Test credentials, addresses and files are synthetic.
 
-The complete private review kit passed **73 tests**; this public code-only subset contains **68 tests**:
+This public code-only subset now passes **73 tests**, including the production-column contract repair:
 
 - 16 receipt-policy tests (the five private operational blueprint tests are excluded)
-- 25 parser tests, including fresh-process network/database/application/file-I/O tripwires
+- 30 parser tests, including required DateUntil, varchar boundaries, published fixtures, server/validator parity and fresh-process network/database/application/file-I/O tripwires
 - 17 persistent message-gate tests
 - 10 real local Flask integration/transport tests
+
+The historical private review kit passed 73 tests on 5 October; its five private
+operational blueprint tests are not included or rerun in this public suite.
 
 Scoped Ruff checks and Python compilation also pass for the new integration code. This verifies application behavior with an injected test repository, not PostgreSQL concurrency, Microsoft Graph, SharePoint or Make runtime behavior.
 

@@ -13,7 +13,7 @@ from parser_adapter import AdapterError, parse_attachment, parse_base64_attachme
 from parser_adapter.adapter import MATERIAL_TO_AVO, PLANT_TO_CLIENT, VALEO_GERMANY
 
 ROOT = Path(__file__).resolve().parents[1]
-VALIDATION_SHA256 = "f1fb421bea29ea02752f34136184a2271f34b51915f791af7f427b75e36a3b72"
+VALIDATION_SHA256 = "fc6ca3b0125eaa0b8f3ccd7d10e4cdc4e7cfa63986c5cabc47404c2e49bdf266"
 LEGACY_ROW = {
     "Org_Name_Customer": "Valeo", "Customer_No": "001234", "Plant_No": "CZ22",
     "Material_No_Customer": "00190313", "Delivery_Date": "2026-10-12",
@@ -28,7 +28,7 @@ DELIVERY_ROW = {
 }
 EDI_ROW = {
     "Site": "Germany", "ClientCode": "00100", "ClientMaterialNo": "000321",
-    "AVOMaterialNo": "000123", "DateFrom": "2026-W41", "Quantity": "0",
+    "AVOMaterialNo": "000123", "DateFrom": "2026-W41", "DateUntil": "2026-W42", "Quantity": "0",
     "ForecastDate": "2026-10-05", "EDIStatus": "Forecast",
 }
 
@@ -62,7 +62,8 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(row["ClientCode"], "00100")
         self.assertEqual(row["ClientMaterialNo"], "000321")
         self.assertEqual(row["Quantity"], 0)
-        self.assertIsNone(row["DateUntil"])
+        self.assertEqual(row["DateUntil"], "2026-W42")
+        self.assertIsNone(row["LastDeliveryDate"])
         self.assertEqual(len(row), 14)
 
     def test_normalized_delimiters_and_utf8_bom(self):
@@ -169,10 +170,12 @@ class AdapterTests(unittest.TestCase):
                "Last_Delivery_Quantity": "", "Cum_Quantity": "", "Description": "", "Last_Delivery_Note": ""}
         result = legacy([row])["rows"][0]
         self.assertEqual(result["DateFrom"], "2026-W42")
+        self.assertEqual(result["DateUntil"], "2026-W42")
         self.assertIsNone(result["LastDeliveryDate"])
         self.assertEqual(result["LastDeliveredQuantity"], 0)
         self.assertIsNone(result["ProductName"])
         self.assertEqual(legacy([{**row, "Delivery_Date": "12.10.2026"}])["rows"][0]["DateFrom"], "2026-W42")
+        self.assertEqual(legacy([{**row, "Delivery_Date": "12.10.2026"}])["rows"][0]["DateUntil"], "2026-10-12")
 
     def test_legacy_optional_customer_number_and_unused_extra_columns(self):
         row = {k: v for k, v in LEGACY_ROW.items() if k != "Customer_No"}
@@ -208,6 +211,65 @@ class AdapterTests(unittest.TestCase):
 
     def test_validation_snapshot_integrity(self):
         self.assertEqual(hashlib.sha256((ROOT / "_contract_validation.py").read_bytes()).hexdigest(), VALIDATION_SHA256)
+
+    def test_vendored_contract_matches_server_when_available(self):
+        server = ROOT.parents[2] / "edi_stock" / "validation.py"
+        if not server.is_file():
+            self.skipTest("Standalone parser installation has no application checkout.")
+        self.assertEqual((ROOT / "_contract_validation.py").read_bytes(), server.read_bytes())
+
+    def test_normalized_edi_requires_date_until_header_and_calendar_value(self):
+        missing = {key: value for key, value in EDI_ROW.items() if key != "DateUntil"}
+        with self.assertRaises(AdapterError) as error:
+            parse_attachment(csv_bytes([missing]), "edi.csv", "EDI")
+        self.assertEqual(error.exception.code, "unsupported_headers")
+        for value in ("", "2026-02-30", "2025-W53", "BACKORDER"):
+            with self.subTest(value=value), self.assertRaises(AdapterError) as error:
+                parse_attachment(csv_bytes([EDI_ROW, {**EDI_ROW, "DateUntil": value}]), "edi.csv", "EDI")
+            self.assertEqual(error.exception.code, "row_validation_failed")
+            self.assertEqual(error.exception.errors[0]["column"], "DateUntil")
+            self.assertEqual(error.exception.errors[0]["row"], 3)
+
+    def test_database_text_boundaries_are_checked_before_envelope_is_returned(self):
+        for file_type, source, column, limit in (
+            ("EDI", EDI_ROW, "Site", 50), ("EDI", EDI_ROW, "ClientCode", 50),
+            ("EDI", EDI_ROW, "ClientMaterialNo", 50), ("EDI", EDI_ROW, "AVOMaterialNo", 50),
+            ("EDI", EDI_ROW, "ProductName", 100), ("EDI", EDI_ROW, "LastDeliveryNo", 50),
+            ("LIVRAISON", DELIVERY_ROW, "Site", 20), ("LIVRAISON", DELIVERY_ROW, "AVOMaterialNo", 30),
+            ("LIVRAISON", DELIVERY_ROW, "DeliveryNo", 28),
+        ):
+            with self.subTest(file_type=file_type, column=column):
+                row = {**source, column: "é" * limit}
+                accepted = parse_attachment(csv_bytes([row]), "fixture.csv", file_type)
+                self.assertEqual(accepted["rows"][0][column], row[column])
+                with self.assertRaises(AdapterError) as error:
+                    parse_attachment(csv_bytes([{**row, column: row[column] + "é"}]), "fixture.csv", file_type)
+                self.assertEqual(error.exception.code, "row_validation_failed")
+                self.assertEqual(error.exception.errors[0]["column"], column)
+        for file_type, source, limit in (("EDI", EDI_ROW, 50), ("LIVRAISON", DELIVERY_ROW, 30)):
+            with self.subTest(file_type=file_type, boundary="joined material suffix"):
+                row = {**source, "AVOMaterialNo": "A" * (limit - 2) + " PL"}
+                accepted = parse_attachment(csv_bytes([row]), "fixture.csv", file_type)
+                self.assertEqual(accepted["rows"][0]["AVOMaterialNo"], "A" * (limit - 2) + "PL")
+                with self.assertRaises(AdapterError):
+                    parse_attachment(csv_bytes([{**row, "AVOMaterialNo": "A" + row["AVOMaterialNo"]}]),
+                                     "fixture.csv", file_type)
+
+    def test_legacy_product_name_limit_is_not_truncated(self):
+        self.assertEqual(legacy([{**LEGACY_ROW, "Description": "P" * 100}])["rows"][0]["ProductName"], "P" * 100)
+        with self.assertRaises(AdapterError) as error:
+            legacy([{**LEGACY_ROW, "Description": "P" * 101}])
+        self.assertEqual(error.exception.errors[0]["column"], "ProductName")
+
+    def test_published_synthetic_examples_match_expected_payloads(self):
+        for name, kind, profile in (("synthetic-normalized-delivery", "LIVRAISON", "normalized-csv-v1"),
+                                    ("synthetic-normalized-edi", "EDI", "normalized-csv-v1"),
+                                    ("synthetic-valeo-germany", "EDI", VALEO_GERMANY)):
+            with self.subTest(example=name):
+                example = ROOT / "examples" / name
+                self.assertEqual(parse_attachment(example.with_suffix(".csv").read_bytes(), name + ".csv", kind,
+                                                  profile=profile),
+                                 json.loads(example.with_suffix(".expected.json").read_text()))
 
     def test_parser_import_graph_is_stdlib_or_vendored_only(self):
         allowed = {"base64", "binascii", "csv", "io", "re", "datetime", "math", "decimal"}

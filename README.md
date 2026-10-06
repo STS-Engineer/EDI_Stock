@@ -20,8 +20,9 @@ Python 3.12. Installer `requirements-dev.txt` dans un environnement virtuel. Ex�
 
 ```sh
 python -m pytest
+PYTHONPATH=integration/edi_intake:. python -m unittest discover -s integration/edi_intake -v
 ruff check .
-python -m compileall -q App.py edi_stock tests
+python -m compileall -q App.py edi_stock tests integration/edi_intake
 ```
 
 Les tests injectent des dépôts et connexions simulés. Ne pas renseigner de vrais accès de production pour les lancer. Ne pas tester sur les tables de production.
@@ -47,7 +48,7 @@ La table `edi_imports` est nouvelle. La migration SQL est fournie pour revue et 
 
 ## Limites explicites
 
-- Schéma PostgreSQL, contraintes existantes, concurrence réelle, performances et données métier réelles non vérifiés. Les tests de concurrence simulent les verrous advisory ; ils ne remplacent pas un essai PostgreSQL en staging.
+- Les limites de texte et la nullabilité des colonnes métier ont été inspectées en lecture seule le 6 octobre 2026 ; le contrat impose désormais DateUntil et les longueurs réelles. Les autres contraintes, la migration, la concurrence réelle et les performances restent à valider. Les tests de concurrence simulent les verrous advisory ; ils ne remplacent pas un essai PostgreSQL en staging.
 - Le registre protège une clé réutilisée. Une nouvelle clé pour le même fichier constitue un nouvel import. Dans l’UI, confirmer deux fois le même aperçu est protégé ; téléverser à nouveau crée un nouvel aperçu et peut doubler les données. Une déduplication métier inter-fichiers doit être définie séparément.
 - Les PDF scannés, formats inconnus ou lignes non reconnues nécessitent une vérification humaine dans le modèle Excel. Le parseur de facture historique affecte le site Tunisia et le statut Dispatched ; valider ces valeurs dans l’aperçu. Il ne peut pas garantir la complétude de tous les PDF.
 - Les codes saisis comme nombres dans Excel peuvent avoir perdu leurs zéros avant l’import. Les modèles générés mettent les cellules en format texte.

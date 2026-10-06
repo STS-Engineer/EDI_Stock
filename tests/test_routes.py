@@ -1,5 +1,6 @@
 import io
 import re
+import pytest
 from sqlalchemy.exc import OperationalError
 from edi_stock import create_app
 
@@ -200,3 +201,31 @@ def test_api_receipt_distinguishes_received_and_aggregated_rows(client, row, hea
     assert result.status_code == 201
     assert result.json['rows_received'] == 2
     assert result.json['rows_imported'] == 1
+
+
+@pytest.mark.parametrize('change', [{'DateUntil': None}, {'DateUntil': '2026-02-30'},
+                                    {'ClientCode': 'C' * 51}, {'ProductName': 'P' * 101}])
+def test_edi_schema_errors_return_422_before_any_write(client, edi_row, headers, repository, change):
+    result = client.post('/api/v1/imports', json={'file_type': 'EDI', 'rows': [edi_row, {**edi_row, **change}]},
+                         headers=headers)
+    assert result.status_code == 422
+    assert result.json['error']['code'] == 'validation_failed'
+    assert result.json['error']['retryable'] is False
+    assert result.json['error']['details'][0]['row'] == 3
+    assert repository.calls == []
+
+
+def test_edi_date_until_reaches_repository_normalized(client, edi_row, headers, repository):
+    result = client.post('/api/v1/imports', json={'file_type': 'EDI', 'rows': [edi_row]}, headers=headers)
+    assert result.status_code == 201
+    assert repository.calls[0][1][0]['DateUntil'] == '2026-W42'
+
+
+def test_edi_preview_rejects_missing_date_until(client, repository):
+    data = (b'Site,ClientCode,ClientMaterialNo,AVOMaterialNo,DateFrom,Quantity,ForecastDate,EDIStatus\n'
+            b'Germany,0001,002,003,2026-W41,0,2026-W40,Firm\n')
+    result = client.post('/preview', data={'csrf_token': csrf(client), 'file_type': 'EDI',
+                                         'file': (io.BytesIO(data), 'edi.csv')})
+    assert result.status_code == 422
+    assert 'DateUntil' in result.text
+    assert repository.calls == []

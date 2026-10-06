@@ -11,8 +11,17 @@ SCHEMAS = {
     'LIVRAISON': ['Site', 'AVOMaterialNo', 'DeliveryNo', 'Quantity', 'Date', 'Status'],
 }
 REQUIRED = {
-    'EDI': {'Site', 'ClientCode', 'ClientMaterialNo', 'AVOMaterialNo', 'DateFrom', 'Quantity', 'ForecastDate', 'EDIStatus'},
+    'EDI': {'Site', 'ClientCode', 'ClientMaterialNo', 'AVOMaterialNo', 'DateFrom', 'DateUntil',
+            'Quantity', 'ForecastDate', 'EDIStatus'},
     'LIVRAISON': set(SCHEMAS['LIVRAISON']),
+}
+# PostgreSQL varchar limits verified read-only on 2026-10-06. Required business
+# fields remain stricter than database nullability; never truncate input to fit.
+TEXT_LIMITS = {
+    'EDI': {'Site': 50, 'ClientCode': 50, 'ClientMaterialNo': 50, 'AVOMaterialNo': 50,
+            'DateFrom': 50, 'DateUntil': 50, 'ForecastDate': 50, 'LastDeliveryDate': 50,
+            'EDIStatus': 50, 'ProductName': 100, 'LastDeliveryNo': 50},
+    'LIVRAISON': {'Site': 20, 'AVOMaterialNo': 30, 'DeliveryNo': 30, 'Date': 20, 'Status': 30},
 }
 
 class ValidationError(ValueError):
@@ -116,6 +125,11 @@ def validate_rows(rows, file_type, *, max_rows=10000):
                 value = clean_string(source.get(column))
                 if len(value) > 1000:
                     raise ValueError('Champ trop long (maximum 1000 caractères).')
+                if column == 'AVOMaterialNo':
+                    value = normalize_material(value)
+                limit = TEXT_LIMITS[file_type].get(column)
+                if limit is not None and len(value) > limit:
+                    raise ValueError(f'Champ trop long (maximum {limit} caractères).')
                 if not value:
                     if column in REQUIRED[file_type]:
                         raise ValueError('Champ obligatoire.')
@@ -129,10 +143,8 @@ def validate_rows(rows, file_type, *, max_rows=10000):
                     value = normalize_status(value)
                 elif column == 'Date':
                     value = calendar_value(source.get(column))
-                elif column in {'DateFrom', 'ForecastDate', 'LastDeliveryDate'}:
+                elif column in {'DateFrom', 'DateUntil', 'ForecastDate', 'LastDeliveryDate'}:
                     value = calendar_value(source.get(column), weeks=True)
-                elif column == 'AVOMaterialNo':
-                    value = normalize_material(value)
                 elif column == 'EDIStatus' and value not in {'Forcast', 'Forecast', 'Firm', 'PO'}:
                     raise ValueError('Statut attendu : Forecast, Forcast, Firm ou PO.')
                 if column == 'DeliveryNo' and len(str(value)) > 28:
